@@ -15,7 +15,7 @@ const quality = (heading, content, name) => {
 };
 
 async function gemini(key, prompt, schema) {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(48000), body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.25, responseMimeType: 'application/json', responseSchema: schema } }) });
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(48000), body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.25, responseMimeType: 'application/json', responseSchema: schema } }) });
   const data = await response.json(); if (!response.ok) { const e = new Error(data?.error?.message || `Gemini HTTP ${response.status}`); e.status = response.status; throw e; }
   return JSON.parse((data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(''));
 }
