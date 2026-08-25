@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the proxy." });
 
   const brand = brandName || domain.replace(/https?:\/\/(www\.)?/i, "").split(".")[0];
-  const prompt = `You are a rigorous AI Visibility and Generative Engine Optimization auditor. Analyze publicly discoverable web signals for this target. Never claim access to private indexes or that you directly queried ChatGPT, Claude, or Perplexity. Clearly distinguish observed evidence from inference. Return only valid JSON, without markdown.
+  const prompt = `You are a rigorous AI Visibility and Generative Engine Optimization auditor. Produce a concise diagnostic from the supplied business details and your general knowledge. Never claim that you performed a live crawl, accessed private indexes, or directly queried ChatGPT, Claude, or Perplexity. Clearly label uncertain conclusions as inference. Return only valid JSON, without markdown.
 
 TARGET
 Domain: ${domain}
@@ -76,7 +76,7 @@ Return exactly this JSON structure. All scores are integers from 0 to 100:
  "opportunityMatrix":[{"name":"string","difficulty":1,"impact":1,"priority":"High|Medium|Low"}]
 }
 
-Evaluate entity clarity, structured data, content citability, authority/trust, AI crawler access, retrieval readiness, and competitor gaps. Provide at least 6 actionable roadmap items. Difficulty and impact in opportunityMatrix must be 1-10.`;
+Evaluate entity clarity, structured data, content citability, authority/trust, AI crawler access, retrieval readiness, and competitor gaps. Keep descriptions concise, provide 5 actionable roadmap items, and use difficulty/impact values from 1 to 10.`;
 
   try {
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -84,8 +84,7 @@ Evaluate entity clarity, structured data, content citability, authority/trust, A
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.1, maxOutputTokens: 12000 }
+        generationConfig: { responseMimeType: "application/json", temperature: 0.1, maxOutputTokens: 6500 }
       })
     });
     const payload = await geminiResponse.json();
