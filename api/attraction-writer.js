@@ -85,19 +85,19 @@ const CORE_ENTITIES_SCHEMA = {
   properties: {
     place: { type: 'STRING' }, type: { type: 'STRING' }, key_periods: STRING_ARRAY,
     people: STRING_ARRAY, defining_features: STRING_ARRAY,
-    religious_identity: { type: 'STRING' }, nearby_landmarks: STRING_ARRAY,
+    religious_identity: { type: 'STRING' }, related_civilizations_movements_events_landscape: STRING_ARRAY, nearby_landmarks: STRING_ARRAY,
   },
-  required: ['place','type','key_periods','people','defining_features','religious_identity','nearby_landmarks'],
+  required: ['place','type','key_periods','people','defining_features','religious_identity','related_civilizations_movements_events_landscape','nearby_landmarks'],
 };
 const INFORMATION_GUIDE_SCHEMA = {
   type: 'OBJECT',
   properties: {
     introduction_and_significance: { type: 'STRING' }, history: { type: 'STRING' },
     main_features: { type: 'STRING' }, what_to_look_for: { type: 'STRING' },
-    stories_and_lesser_known_details: { type: 'STRING' }, planning_the_visit: { type: 'STRING' },
+    stories_and_lesser_known_details: { type: 'STRING' }, what_the_experience_is_like: { type: 'STRING' }, planning_the_visit: { type: 'STRING' },
     combining_with_nearby_places: { type: 'STRING' }, value_of_a_private_guide: { type: 'STRING' },
   },
-  required: ['introduction_and_significance','history','main_features','what_to_look_for','stories_and_lesser_known_details','planning_the_visit','combining_with_nearby_places','value_of_a_private_guide'],
+  required: ['introduction_and_significance','history','main_features','what_to_look_for','stories_and_lesser_known_details','what_the_experience_is_like','planning_the_visit','combining_with_nearby_places','value_of_a_private_guide'],
 };
 const RESEARCH_SCHEMA = {
   type: 'OBJECT',
@@ -110,10 +110,10 @@ const RESEARCH_SCHEMA = {
   },
   required: ['attraction_type','location_confirmed','significance','core_entities','information_guide','standout_features','key_entities','guide_value_points','sources','confidence','verification_notes'],
 };
-const PROCESS_SCHEMA = { type: 'OBJECT', properties: { identified: { type: 'BOOLEAN' }, clarification_reason: { type: 'STRING' }, heading: { type: 'STRING' }, content: { type: 'STRING' }, rule_compliance: RULE_AUDIT, research: RESEARCH_SCHEMA }, required: ['identified','heading','content','rule_compliance','research'] };
+const PROCESS_SCHEMA = { type: 'OBJECT', properties: { identified: { type: 'BOOLEAN' }, clarification_reason: { type: 'STRING' }, heading: { type: 'STRING' }, content: { type: 'STRING' }, plan_your_visit: { type: 'STRING' }, nearby_attractions: { type: 'STRING' }, rule_compliance: RULE_AUDIT, research: RESEARCH_SCHEMA }, required: ['identified','heading','content','plan_your_visit','nearby_attractions','rule_compliance','research'] };
 const REFINE_SCHEMA = { type: 'OBJECT', properties: { assistant_message: { type: 'STRING' }, heading: { type: 'STRING' }, content: { type: 'STRING' }, changes_made: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['assistant_message','heading','content','changes_made'] };
 const ENFORCE_SCHEMA = { type: 'OBJECT', properties: { heading: { type: 'STRING' }, content: { type: 'STRING' }, rule_compliance: RULE_AUDIT }, required: ['heading','content','rule_compliance'] };
-const PROXY_VERSION = 'attraction-knowledge-brief-v6';
+const PROXY_VERSION = 'attraction-complete-content-v7';
 const activeRules = (input) => (Array.isArray(input.custom_rules) ? input.custom_rules : []).filter((rule) => cleanText(rule?.title) && cleanText(rule?.description)).map((rule) => ({ title: cleanText(rule.title, 160), description: cleanText(rule.description, 1200) }));
 const rulesFingerprint = (input) => {
   const text = JSON.stringify({ instructions: cleanText(input.additional_instructions), rules: activeRules(input) });
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
       const prompt = `You are a senior factual attraction copy editor. Revise the complete heading and content. ${wordDirective} The active project instructions and saved rules below are authoritative and replace all legacy formatting, tone, entity, paragraph, heading, and guide-value assumptions. Preserve factual accuracy and do not invent verification.${instructionBlock(i)}\nAttraction/location: ${name}, ${i.city || ''}, ${i.country || ''}\nCurrent heading: ${i.current_heading || heading}\nCurrent copy: ${i.current_content || ''}\nManager request: ${i.user_prompt}\nResearch: ${JSON.stringify(i.research || {})}`;
       const parsed = await gemini(key, prompt, REFINE_SCHEMA); const finalHeading = cleanText(parsed.heading, 500) || heading; const content = normalize(parsed.content, i); return res.status(200).json({ ...parsed, heading: finalHeading, content, full_content: `${finalHeading}\n\n${content}`, word_count: countWords(content), quality_check: quality(finalHeading, content, name, wordRange, i) });
     }
-    const prompt = `Create factual attraction copy and a detailed attraction knowledge brief. Attraction: ${name}; city: ${i.city || 'not supplied'}; country: ${i.country || 'not supplied'}; URL: ${i.attraction_url || 'none'}; notes: ${i.notes || 'none'}. ${wordDirective}${instructionBlock(i)}The returned heading and content must follow every active saved rule, including any edited rules for heading format, entities, structure, tone, audience, paragraphs, length, and guide value. Do not reintroduce deleted or superseded legacy rules. Separately complete every field in research.core_entities and research.information_guide. Cover the place, type, periods, people, defining features, religious identity where relevant, nearby landmarks, significance, history, main features, visible details to look for, verified stories or clearly labelled legends, stable visit-planning guidance, nearby combinations, and private-guide value. Do not use exact opening hours, ticket prices, temporary rules, or unsupported accessibility claims. If the attraction cannot be identified, set identified false and explain. Do not claim live verification. Include only plausible official/authoritative source URLs and flag time-sensitive facts for verification.`;
+    const prompt = `Create factual attraction copy and a detailed attraction knowledge brief. Attraction: ${name}; city: ${i.city || 'not supplied'}; country: ${i.country || 'not supplied'}; URL: ${i.attraction_url || 'none'}; notes: ${i.notes || 'none'}. ${wordDirective}${instructionBlock(i)}The heading and main content must follow every active saved rule. The word-count rule applies only to main content, not plan_your_visit or nearby_attractions. Produce plan_your_visit as a separate evergreen practical section and nearby_attractions as a separate itinerary section; format both with <br><br> paragraph breaks. Separately complete every field in research.core_entities and research.information_guide, including related civilizations, movements, events or landscape and what the experience feels like. Cover place, type, periods, people, defining features, religious identity where relevant, nearby landmarks, significance, history, visible details, verified stories or clearly labelled legends, stable planning guidance, nearby combinations, and private-guide value. Do not use exact opening hours, ticket prices, temporary rules, or unsupported accessibility claims. If the attraction cannot be identified, set identified false and explain. Do not claim live verification. Include only plausible official/authoritative source URLs and flag time-sensitive facts for verification.`;
     const parsed = await gemini(key, prompt, PROCESS_SCHEMA); if (!parsed.identified) return res.status(200).json({ status: 'needs_clarification', clarification_reason: parsed.clarification_reason || 'Insufficient attraction-specific information', heading: '', content: '', full_content: '', word_count: 0, research: parsed.research, quality_check: quality('', '', name, wordRange, i), proxy_version: PROXY_VERSION, rules_fingerprint: rulesFingerprint(i), applied_rules: activeRules(i), active_word_range: wordRange });
     const enforced = await enforceRules(key, parsed, i, name, wordDirective, wordRange);
     const finalHeading = cleanText(enforced.heading, 500) || heading; const content = normalize(enforced.content, i); const checked = quality(finalHeading, content, name, wordRange, i); checked.auto_revised = Boolean(enforced.auto_revised);
@@ -163,6 +163,9 @@ export default async function handler(req, res) {
       checked.passed = false;
       checked.score = Math.max(50, checked.score - failedRules.length * 8);
     }
-    return res.status(200).json({ status: 'complete', heading: finalHeading, content, full_content: `${finalHeading}\n\n${content}`, word_count: countWords(content), research: enforced.research, quality_check: checked, rule_compliance: enforced.rule_compliance || [], proxy_version: PROXY_VERSION, rules_fingerprint: rulesFingerprint(i), applied_rules: activeRules(i), active_word_range: wordRange });
+    const planYourVisit = normalize(enforced.plan_your_visit || parsed.plan_your_visit, { custom_rules: [{ title: 'Paragraph HTML', description: 'Use <br><br> paragraphs' }] });
+    const nearbyAttractions = normalize(enforced.nearby_attractions || parsed.nearby_attractions, { custom_rules: [{ title: 'Paragraph HTML', description: 'Use <br><br> paragraphs' }] });
+    const fullFinalDescription = `${finalHeading}\n\n${content}\n\nPlan Your Visit\n\n${planYourVisit}\n\nNearby Attractions\n\n${nearbyAttractions}`;
+    return res.status(200).json({ status: 'complete', heading: finalHeading, content, plan_your_visit: planYourVisit, nearby_attractions: nearbyAttractions, full_content: fullFinalDescription, word_count: countWords(content), research: enforced.research, quality_check: checked, rule_compliance: enforced.rule_compliance || [], proxy_version: PROXY_VERSION, rules_fingerprint: rulesFingerprint(i), applied_rules: activeRules(i), active_word_range: wordRange });
   } catch (error) { return res.status(error?.name === 'TimeoutError' ? 504 : error?.status === 429 ? 429 : 500).json({ status: 'failed', error_message: error?.message || 'Attraction processing failed', error: error?.message || 'Attraction processing failed' }); }
 }
