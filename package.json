@@ -1,6 +1,12 @@
 {
   "name": "gemini-proxy-2",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0"
+  }
 }
